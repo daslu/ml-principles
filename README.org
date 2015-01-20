@@ -1,4 +1,4 @@
-* TODO explain what these notes are
+* TODO: explain what these notes are
 
 * Currently this is an incomplete draft
 
