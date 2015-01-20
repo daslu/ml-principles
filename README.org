@@ -1,63 +1,69 @@
+* TODO explain what these notes are
 
+* Currently this is an incomplete draft
 
-* Computation is divided into tasks
+** Computation is divided into tasks
 - A task is defined by a key-value map of inputs.
 - The input value of key :fn is a function name, defining the computation
   to be applied to the other inputs.
-- Its returned value is a key-value map of named outputs.
 - Every task can be identified by unique id, such that maps are equal
   (as key-value maps) iff their ids are.
 - One special input value, corresponding to key :dependencies,
-  specifies outputs of other tasks. It is specified by specifying
-  those tasks (or equivalently, their ids) and the relevant output
-  names (which can be omitted if there is only one task output).
-  The current task is said to depend on those other tasks.   
+  specifies dependency on other tasks. It is specified by specifying
+  those tasks (or equivalently, their ids).
+  The current task can use the otuputs of those other tasks and is
+  said to depend on them. 
   
-* Examples
-  
-** read dataset
+** Example: a simple machine learning dataflow
    
-   #+BEGIN_SRC clojure
-     (def task1 {:fn read-dataset
-                 :path "/path/to/dataset.csv"})
+*** read dataset
+    
+    #+BEGIN_SRC clojure
+      (def dataset-task {:fn read-dataset
+                  :path "/path/to/dataset.csv"})
 
-   #+END_SRC
+    #+END_SRC
+    
+*** extract trainingset and testset out of dataset
+    
+    #+BEGIN_SRC clojure
+      (def dataset-parts-task {:fn randomly-divide-into-parts
+                  :dependencies {:dataset dataset-task}
+                  :seed 1
+                  :proportions {:trainingset 0.6 :testset 0.4}})
+    #+END_SRC
+    
+*** compute feature standard deviations (based on trainingset)
+    
+    #+BEGIN_SRC clojure
+      (def standard-deviations-task {:fn compute-standard-deviations
+                  :dependencies {:dataset-parts dataset-parts-task}
+                  :part-to-use :trainingset})
+    #+END_SRC
+    
+*** normalize dataset parts given standard deviations
+    
+    #+BEGIN_SRC clojure
+      (def normalized-dataset-parts {:fn normalize
+                                     :dependencies {:dataset-parts dataset-parts-task
+                                                    :standard-deviations standard-deviations-task}})
+    #+END_SRC
+    
    
-** extract trainingset and testset out of dataset
+    
+    
+** Tasks can be easily invoked in parallel
+
+** Whole dataflows of task dependencies can be visualized as graphs
+
+** Templates of such dataflows with varying parameters are simple to write
+
+** Tasks' outputs can cached to disk and to memory
    
-   #+BEGIN_SRC clojure
-     (def task2 {:fn randomly-divide-into-parts
-                 :seed 1
-                 :dependencies {:dataset {:task task1}}
-                 :proportions {:trainingset 0.6 :testset 0.4}})
-   #+END_SRC
-   
-** compute feature standard deviations (based on trainingset)
-
-   #+BEGIN_SRC clojure
-     (def task3 {:fn compute-standard-deviations
-                 :dependencies {:dataset {:task task2
-                                          :name :trainingset}}})
-   #+END_SRC
-
-** normalize dataset given standard deviations
-
-   #+BEGIN_SRC clojure
-     (def task3 {:fn normalize
-                 :dependencies {:standard-deviations {:task task3}}})
-   #+END_SRC
-
-   
-
-   
-* Tasks can be easily invoked in parallel
-  
-* Tasks' outputs can cached to disk and to memory
-  
-* Tasks can be easily compared by a diff tool
+** Tasks can be easily compared by a diff tool
 - Comparison can be heirarchical (comparing the tasks they depend upon).
-
-* Handling code versions
+  
+** Handling code versions
 - Sometimes there are code changes which affect the outputs. Thus is
   is important to distinguish tasks used before and after the change
   -- otherwise the cached outputs cannot be used reliably, etc.
