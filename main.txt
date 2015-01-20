@@ -1,0 +1,70 @@
+
+
+* Computation is divided into tasks
+- A task is defined by a key-value map of inputs.
+- The input value of key :fn is a function name, defining the computation
+  to be applied to the other inputs.
+- Its returned value is a key-value map of named outputs.
+- Every task can be identified by unique id, such that maps are equal
+  (as key-value maps) iff their ids are.
+- One special input value, corresponding to key :dependencies,
+  specifies outputs of other tasks. It is specified by specifying
+  those tasks (or equivalently, their ids) and the relevant output
+  names (which can be omitted if there is only one task output).
+  The current task is said to depend on those other tasks.   
+  
+* Examples
+  
+** read dataset
+   
+   #+BEGIN_SRC clojure
+     (def task1 {:fn read-dataset
+                 :path "/path/to/dataset.csv"})
+
+   #+END_SRC
+   
+** extract trainingset and testset out of dataset
+   
+   #+BEGIN_SRC clojure
+     (def task2 {:fn randomly-divide-into-parts
+                 :seed 1
+                 :dependencies {:dataset {:task task1}}
+                 :proportions {:trainingset 0.6 :testset 0.4}})
+   #+END_SRC
+   
+** compute feature standard deviations (based on trainingset)
+
+   #+BEGIN_SRC clojure
+     (def task3 {:fn compute-standard-deviations
+                 :dependencies {:dataset {:task task2
+                                          :name :trainingset}}})
+   #+END_SRC
+
+** normalize dataset given standard deviations
+
+   #+BEGIN_SRC clojure
+     (def task3 {:fn normalize
+                 :dependencies {:standard-deviations {:task task3}}})
+   #+END_SRC
+
+   
+
+   
+* Tasks can be easily invoked in parallel
+  
+* Tasks' outputs can cached to disk and to memory
+  
+* Tasks can be easily compared by a diff tool
+- Comparison can be heirarchical (comparing the tasks they depend upon).
+
+* Handling code versions
+- Sometimes there are code changes which affect the outputs. Thus is
+  is important to distinguish tasks used before and after the change
+  -- otherwise the cached outputs cannot be used reliably, etc.
+- Other code changes actually do not affect outputs, and in such cases
+  it is preferable not to distinguish tasks used before and after the
+  change -- to avoid unnecessary recomputation of cached outputs, etc.
+- One simple (but not unproblematic) way to handle this is to include
+  code versions as part of the inputs, and manually update them after
+  some human judgemet.
+  
